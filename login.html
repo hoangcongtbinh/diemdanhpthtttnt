@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Login</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+    text-align: center;
+}
+.container {
+    width: 350px;
+    margin: auto;
+    margin-top: 40px;
+    padding: 20px;
+    background: #1e293b;
+    border-radius: 10px;
+}
+input {
+    width: 90%;
+    padding: 10px;
+    margin: 10px;
+}
+button {
+    padding: 10px 20px;
+    background: #22c55e;
+    border: none;
+    cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🎓 Login System</h1>
+
+<!-- REGISTER -->
+<div class="container">
+    <h2>Đăng ký</h2>
+    <input id="reg_username" placeholder="Username">
+    <input id="reg_email" placeholder="Email">
+    <input id="reg_password" type="password" placeholder="Password">
+    <button onclick="register()">Đăng ký</button>
+</div>
+
+<!-- LOGIN -->
+<div class="container">
+    <h2>Đăng nhập</h2>
+    <input id="login_email" placeholder="Email">
+    <input id="login_password" type="password" placeholder="Password">
+    <button onclick="login()">Đăng nhập</button>
+</div>
+
+<script>
+
+function register() {
+    fetch("http://127.0.0.1:8000/api/students/create", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            name: document.getElementById("reg_username").value,
+            email: document.getElementById("reg_email").value,
+            password: document.getElementById("reg_password").value,
+            birthday: "2003-01-01",
+            face_vectors: Array.from({length: 10}, () =>
+                Array.from({length: 128}, () => Math.random())
+            )
+        })
+    })
+    .then(r => r.json())
+    .then(data => alert(data.message || "OK"))
+    .catch(err => alert("Lỗi đăng ký"));
+}
+
+function login() {
+    fetch("http://127.0.0.1:8000/api/auth/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            email: document.getElementById("login_email").value,
+            password: document.getElementById("login_password").value
+        })
+    })
+    .then(async res => {
+        const data = await res.json();
+        if (!res.ok) throw data;
+        return data;
+    })
+    .then(data => {
+        localStorage.setItem("token", data.access_token);
+
+        // 🔥 chuyển sang trang điểm danh
+        window.location.href = "attendance.html";
+    })
+    .catch(err => alert("Login thất bại"));
+}
+
+</script>
+
+</body>
+</html>

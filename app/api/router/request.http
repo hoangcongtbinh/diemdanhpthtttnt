@@ -1,0 +1,9 @@
+POST http://localhost:8000/webhook/sepay
+content-type: application/json
+
+{
+ "id": "tx123",
+ "amount": 100000,
+ "content": "HS001-NGUYENVANA",
+ "transferType": "in"
+}

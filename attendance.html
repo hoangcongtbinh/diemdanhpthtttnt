@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Realtime Attendance</title>
+
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+<style>
+body {
+    background: #0f172a;
+    color: white;
+    text-align: center;
+}
+video {
+    border-radius: 10px;
+}
+#status {
+    margin-top: 10px;
+    font-size: 20px;
+}
+.success { color: #22c55e; }
+.fail { color: #ef4444; }
+</style>
+</head>
+
+<body>
+
+<h1>📸 Realtime Attendance</h1>
+
+<video id="video" width="400" height="300" autoplay muted></video>
+<div id="status">⏳ Đang nhận diện...</div>
+
+<script>
+
+let token = localStorage.getItem("token");
+
+if (!token) {
+    alert("Chưa login!");
+    window.location.href = "login.html";
+}
+
+const video = document.getElementById("video");
+let isProcessing = false;
+
+// load model từ CDN
+async function loadModels() {
+    await faceapi.nets.tinyFaceDetector.loadFromUri(
+    'https://justadudewhohacks.github.io/face-api.js/models'
+    );
+}
+
+// mở camera
+function startCamera() {
+    navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => video.srcObject = stream)
+    .catch(() => alert("Không mở được camera"));
+}
+
+// main
+async function start() {
+    await loadModels();
+    startCamera();
+
+    video.addEventListener("play", () => {
+
+        async function detect() {
+
+            const detections = await faceapi.detectAllFaces(
+                video,
+                new faceapi.TinyFaceDetectorOptions()
+            );
+
+            if (detections.length > 0 && !isProcessing) {
+                isProcessing = true;
+                checkFace();
+            }
+
+            requestAnimationFrame(detect);
+        }
+
+        detect();
+    });
+}
+
+// gửi backend
+function checkFace() {
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    ctx.drawImage(video, 0, 0);
+
+    canvas.toBlob(blob => {
+
+        let formData = new FormData();
+        formData.append("file", blob, "face.jpg");
+
+        fetch("http://127.0.0.1:8000/api/attendance/check-in", {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + token
+            },
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+
+            const status = document.getElementById("status");
+
+            if (data.message.includes("✅")) {
+                status.innerText = data.message;
+                status.className = "success";
+            } else {
+                status.innerText = data.message;
+                status.className = "fail";
+            }
+
+            setTimeout(() => {
+                isProcessing = false;
+            }, 3000);
+
+        })
+        .catch(() => {
+            document.getElementById("status").innerText = "❌ Lỗi server";
+        });
+
+    }, "image/jpeg");
+}
+
+window.onload = start;
+
+</script>
+
+</body>
+</html>

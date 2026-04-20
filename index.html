@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Điểm danh khuôn mặt</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+    text-align: center;
+}
+
+.container {
+    width: 350px;
+    margin: auto;
+    margin-top: 20px;
+    padding: 20px;
+    background: #1e293b;
+    border-radius: 10px;
+    display: none; /* 🔥 mặc định ẩn */
+}
+
+input {
+    width: 90%;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 5px;
+    border: none;
+}
+
+button {
+    padding: 10px 20px;
+    background: #22c55e;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    color: black;
+    font-weight: bold;
+    margin: 5px;
+}
+
+video {
+    margin-top: 10px;
+    border-radius: 10px;
+}
+
+canvas {
+    display: none;
+}
+
+.nav {
+    margin-top: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🎓 Hệ thống điểm danh AI</h1>
+
+<!-- 2 NÚT CHÍNH -->
+<div class="nav">
+    <button onclick="showForm('register')">Đăng ký</button>
+    <button onclick="showForm('login')">Đăng nhập</button>
+</div>
+
+<!-- REGISTER -->
+<div id="registerBox" class="container">
+    <h2>Đăng ký</h2>
+
+    <input id="reg_username" placeholder="Username">
+    <input id="reg_email" placeholder="Email">
+    <input id="reg_password" type="password" placeholder="Password">
+
+    <video id="reg_video" width="300" height="200" autoplay></video>
+    <br>
+    <button onclick="register()">📸 Chụp & Đăng ký</button>
+
+    <canvas id="canvas"></canvas>
+</div>
+
+<!-- LOGIN -->
+<div id="loginBox" class="container">
+    <h2>Đăng nhập</h2>
+
+    <input id="login_email" placeholder="Email">
+    <input id="login_password" type="password" placeholder="Password">
+
+    <button onclick="login()">Đăng nhập</button>
+</div>
+
+<script>
+let token = "";
+
+/* ======================
+   SHOW FORM
+====================== */
+function showForm(type) {
+    document.getElementById("registerBox").style.display = "none";
+    document.getElementById("loginBox").style.display = "none";
+
+    if (type === "register") {
+        document.getElementById("registerBox").style.display = "block";
+    } else {
+        document.getElementById("loginBox").style.display = "block";
+    }
+}
+
+/* ======================
+   CAMERA
+====================== */
+let regStream = null;
+
+navigator.mediaDevices.getUserMedia({ video: true })
+.then(stream => {
+    regStream = stream;
+    document.getElementById("reg_video").srcObject = stream;
+})
+.catch(() => alert("Không mở được camera"));
+
+/* ======================
+   REGISTER
+====================== */
+function register() {
+
+    const name = document.getElementById("reg_username").value;
+    const email = document.getElementById("reg_email").value;
+    const password = document.getElementById("reg_password").value;
+
+    const video = document.getElementById("reg_video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    ctx.drawImage(video, 0, 0);
+
+    canvas.toBlob(blob => {
+
+        let formData = new FormData();
+        formData.append("file", blob, "face.jpg");
+        formData.append("name", name);
+        formData.append("email", email);
+        formData.append("password", password);
+
+        fetch("http://127.0.0.1:8000/api/students/register-face", {
+            method: "POST",
+            body: formData
+        })
+        .then(async res => {
+            const data = await res.json();
+            if (!res.ok) throw data;
+            return data;
+        })
+        .then(data => {
+            alert(data.message || "Đăng ký thành công");
+        })
+        .catch(err => {
+            console.log(err);
+            alert(err.detail || "Lỗi đăng ký");
+        });
+
+    }, "image/jpeg");
+}
+
+/* ======================
+   LOGIN
+====================== */
+function login() {
+    fetch("http://127.0.0.1:8000/api/auth/login", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            email: document.getElementById("login_email").value,
+            password: document.getElementById("login_password").value
+        })
+    })
+    .then(async res => {
+        const data = await res.json();
+        if (!res.ok) throw data;
+        return data;
+    })
+    .then(data => {
+        token = data.access_token;
+        localStorage.setItem("token", token);
+        alert("Login thành công");
+
+        // 👉 chuyển sang trang điểm danh
+        window.location.href = "attendance.html";
+    })
+    .catch(err => {
+        console.log(err);
+        alert(err.detail || "Login thất bại");
+    });
+}
+</script>
+
+</body>
+</html>
