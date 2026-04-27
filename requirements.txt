@@ -12,4 +12,7 @@ pydantic-settings
 passlib[bcrypt]
 python-jose[cryptography]
 APScheduler
+face_recognition
 sendgrid
+supabase
+python-multipart
