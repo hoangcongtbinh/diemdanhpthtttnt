@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, UploadFile, File
 from app.service.face import encode_face, save_face, verify_face
@@ -34,6 +35,9 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
+
+# Serve static files
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
 @app.post("/register-face/{user_id}")
 async def register_face(user_id: str, file: UploadFile = File(...)):
